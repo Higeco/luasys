@@ -1,7 +1,7 @@
 
-PLAT= none
-
-LUA= /opt/lua-5.2.3
+PLAT ?= linux
+LUA  ?= /opt/lua-5.2.3
+BD   ?= ./
 
 T= sys.so
 A= libluasys.a
@@ -32,12 +32,18 @@ MYCFLAGS=
 MYLDFLAGS= -shared -Bdynamic
 MYLIBS=
 
-CC= gcc
+CC ?= gcc
 MAKE_DLL= $(CC) $(MYLDFLAGS) -o
-AR= ar rcu
-RANLIB= ranlib
+AR ?= ar
+AR += rcu
+RANLIB ?= ranlib
 RM= rm -f
-STRIP= strip
+STRIP ?= strip
+
+ifdef GWC_ARCH
+	BD := cmp/$(GWC_ARCH)
+endif
+$(shell mkdir -p "$(BD)/sock")
 
 PLATS= generic linux bsd osx mingw
 
@@ -58,6 +64,8 @@ ifneq (,$(findstring Windows,$(OS)))
   endif
 endif
 
+%.o: %.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $(BD)/$@ $<
 
 default: $(PLAT)
 
@@ -66,13 +74,12 @@ all:	$(T)
 a:	$(A)
 
 $(T): $(OBJS)
-	$(MAKE_DLL) $@ $(LDOBJS) $(LIBS)
-	$(STRIP) $@
+	$(MAKE_DLL) $(BD)/$@ $(addprefix $(BD)/, $(LDOBJS)) $(LIBS)
+	$(STRIP) $(BD)/$@
 
 $(A): $(OBJS)
-	$(AR) $@ $?
-	$(RANLIB) $@
-
+	$(AR) $(BD)/$@ $?
+	$(RANLIB) $(BD)/$@
 
 none:
 	@echo "Please choose a platform:"
@@ -94,7 +101,7 @@ osx:
 mingw:	all
 
 clean:
-	$(RM) $(T) $(A) $(LDOBJS)
+	$(RM) $(addprefix $(BD)/, $(T) $(A) $(LDOBJS))
 
 
 .PHONY: all $(PLATS) default a clean
